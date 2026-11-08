@@ -1,5 +1,8 @@
 // set up server, importing libraries and modules via require()
 
+// Load Redis string from .env file into process.env, allowing the app to access environment variables defined in the .env file.
+require('dotenv').config();
+
 // import the path module for handling file paths
 const path = require('path');
 
@@ -24,6 +27,10 @@ const helmet = require('helmet');
 // manages user sessions, allowing the server to remember users across requests
 const session = require('express-session');
 
+// Import Redis libraries
+const redis = require('redis');
+const RedisStore = require('connect-redis').RedisStore;
+
 // contain website routes and their corresponding controller functions
 const router = require('./router.js');
 
@@ -41,50 +48,72 @@ mongoose.connect(dbURI).catch((err) => {
     }
 });
 
-// create the actual server instance using Express.js, which will handle incoming requests and send responses
-const app = express();
+// Create Redis client
+const redisClient = redis.createClient({
+    url: process.env.REDISCLOUD_URL,
+});
 
-// add middleware to the Express app for safety.
-// Middleware functions are executed in the order they are added to the app.
-app.use(helmet());
+// Handle Redis connection errors
+redisClient.on('error', (err) => {
+    console.log('Redis Client Error', err);
+});
 
-// tell express server to serve static files like CSS, JavaScript, and images from the 'hosted' directory when requested by clients.
-app.use('/assets', express.static(path.resolve(`${__dirname}/../hosted`)));
+// Connect to Redis before starting Express
+redisClient.connect().then(() => {
 
-// tell express server to serve the tiny icon
-app.use(favicon(`${__dirname}/../hosted/img/favicon.png`));
+    // create the actual server instance using Express.js, which will handle incoming requests and send responses
+    const app = express();
 
-// use compression to shrink the size of the response body/data sent to the client
-app.use(compression());
+    // add middleware to the Express app for safety.
+    // Middleware functions are executed in the order they are added to the app.
+    app.use(helmet());
 
-// Two body parsing middleware take incoming request data and parse it into a format that can be easily accessed and used by the server.
-// If data is sent as a URL-encoded form or as a Json object, parse it and put it inside req.body for reading
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
+    // tell express server to serve static files like CSS, JavaScript, and images from the 'hosted' directory when requested by clients.
+    app.use('/assets', express.static(path.resolve(`${__dirname}/../hosted`)));
 
-// Set up session tracking
-app.use(session({
-    key: 'sessionid',            // Name of the cookie sent to the browser
-    secret: 'Domo Arigato',      // A private string used to sign the session ID cookie
-    resave: false,               // Don't save the session if it hasn't been modified
-    saveUninitialized: false,    // Don't create a session until we actually store something
-}));
+    // tell express server to serve the tiny icon
+    app.use(favicon(`${__dirname}/../hosted/img/favicon.png`));
 
-// view engine setup
-// tell express to use handlebars as a template to generate HTML pages.
-app.engine('handlebars', expressHandlebars.engine({ defaultLayout: '' }));
+    // use compression to shrink the size of the response body/data sent to the client
+    app.use(compression());
 
-// tell express that on res.render() call, look for the handlebars files
-app.set('view engine', 'handlebars');
+    // Two body parsing middleware take incoming request data and parse it into a format that can be easily accessed and used by the server.
+    // If data is sent as a URL-encoded form or as a Json object, parse it and put it inside req.body for reading
+    app.use(express.urlencoded({ extended: true }));
+    app.use(express.json());
 
-// tell express where to find the handlebars files
-app.set('views', `${__dirname}/../views`);
+    // Configure sessions to use Redis
+    app.use(session({
+        key: 'sessionid',
+        store: new RedisStore({
+            client: redisClient,
+        }),
+        secret: 'Domo Arigato',
+        resave: false,
+        saveUninitialized: false,
+    }));
 
-// after all the above setup, pass express app to router function to set up the routes and their corresponding controller functions
-router(app);
+    // view engine setup
+    // tell express to use handlebars as a template to generate HTML pages.
+    app.engine('handlebars', expressHandlebars.engine({ defaultLayout: '' }));
 
-// start the server and listen for incoming requests on the specified port
-app.listen(port, (err) => {
-  if (err) throw err;
-  console.log(`Listening on port ${port}`);
+    // tell express that on res.render() call, look for the handlebars files
+    app.set('view engine', 'handlebars');
+
+    // tell express where to find the handlebars files
+    app.set('views', `${__dirname}/../views`);
+
+    // after all the above setup, pass express app to router function to set up the routes and their corresponding controller functions
+    router(app);
+
+    // start the server and listen for incoming requests on the specified port
+    app.listen(port, (err) => {
+        if (err) throw err;
+        console.log(`Listening on port ${port}`);
+    });
+
+})
+.catch((err) => {
+    console.log('Could not connect to Redis');
+    throw err;
 });
