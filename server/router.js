@@ -14,6 +14,7 @@ const router = (app) => {
 
     // Maker route, Get on open maker page from successful login or signup
     app.get('/maker', controllers.Domo.makerPage);
+    app.post('/maker', controllers.Domo.makeDomo);
 
     // Show main page
     app.get('/', controllers.Account.loginPage);

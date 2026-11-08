@@ -8,7 +8,11 @@ const Account = models.Account;
 // These three functions are responsible for rendering the login and signup pages, and handling the logout functionality
 const loginPage = (req, res) => res.render('login');
 const signupPage = (req, res) => res.render('signup');
-const logout = (req, res) => res.redirect('/');
+const logout = (req, res) => {
+    // Destroy the session in memory so the user is completely logged out
+    req.session.destroy();
+    res.redirect('/');
+};
 
 // SignUp function, async is used because the need to wait for the database to save the account
 const signup = async (req, res) => {
@@ -39,6 +43,9 @@ const signup = async (req, res) => {
 
         // Save the new account to the mongo database.
         await newAccount.save();
+
+        // Save the safe account data which are id and username into the session
+        req.session.account = Account.toAPI(newAccount);
 
         // Redirect the user to the /maker page.
         return res.json({ redirect: '/maker' });
@@ -78,6 +85,9 @@ const login = (req, res) => {
         if (err || !account) {
             return res.status(401).json({ error: 'Wrong username or password!' });
         }
+
+        // Save the safe account data which are id and username into the session
+        req.session.account = Account.toAPI(account);
 
         // If reach here, authentication was successful, redirect to the main page.
         return res.json({ redirect: '/maker' });

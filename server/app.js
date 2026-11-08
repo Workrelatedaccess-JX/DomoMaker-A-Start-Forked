@@ -21,6 +21,9 @@ const expressHandlebars = require('express-handlebars');
 // adds security-related HTTP headers to protect the app from common web vulnerabilities
 const helmet = require('helmet');
 
+// manages user sessions, allowing the server to remember users across requests
+const session = require('express-session');
+
 // contain website routes and their corresponding controller functions
 const router = require('./router.js');
 
@@ -58,6 +61,14 @@ app.use(compression());
 // If data is sent as a URL-encoded form or as a Json object, parse it and put it inside req.body for reading
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+
+// Set up session tracking
+app.use(session({
+    key: 'sessionid',            // Name of the cookie sent to the browser
+    secret: 'Domo Arigato',      // A private string used to sign the session ID cookie
+    resave: false,               // Don't save the session if it hasn't been modified
+    saveUninitialized: false,    // Don't create a session until we actually store something
+}));
 
 // view engine setup
 // tell express to use handlebars as a template to generate HTML pages.
