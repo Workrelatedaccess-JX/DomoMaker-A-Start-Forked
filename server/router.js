@@ -7,7 +7,6 @@ const router = (app) => {
     app.post('/login', mid.requiresSecure, mid.requiresLogout, controllers.Account.login);
 
     // Signup routes, Get on open signup page, Post on submission to signup form
-    app.get('/signup', mid.requiresSecure, mid.requiresLogout, controllers.Account.signupPage);
     app.post('/signup', mid.requiresSecure, mid.requiresLogout, controllers.Account.signup);
 
     // Logout route, get on logout route, redirect to login page for now
@@ -15,10 +14,17 @@ const router = (app) => {
 
     // Maker route, Get on open maker page from successful login or signup
     app.get('/maker', mid.requiresLogin, controllers.Domo.makerPage);
+
+    // Get the Domos belonging to the logged-in user from the database and return them as JSON
+    app.get('/getDomos', mid.requiresLogin, controllers.Domo.getDomos);
+
+    // Create a new Domo and save it to MongoDB
     app.post('/maker', mid.requiresLogin, controllers.Domo.makeDomo);
 
     // Show main page
     app.get('/', mid.requiresSecure, mid.requiresLogout, controllers.Account.loginPage);
+
+
 };
 
 module.exports = router;

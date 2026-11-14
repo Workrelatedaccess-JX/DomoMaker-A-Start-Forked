@@ -7,7 +7,6 @@ const Account = models.Account;
 
 // These three functions are responsible for rendering the login and signup pages, and handling the logout functionality
 const loginPage = (req, res) => res.render('login');
-const signupPage = (req, res) => res.render('signup');
 const logout = (req, res) => {
     // Destroy the session in memory so the user is completely logged out
     req.session.destroy();
@@ -97,7 +96,6 @@ const login = (req, res) => {
 // Export all these functions so router.js can use them.
 module.exports = {
     loginPage,
-    signupPage,
     login,
     logout,
     signup,
