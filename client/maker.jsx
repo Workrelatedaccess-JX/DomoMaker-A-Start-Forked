@@ -3,6 +3,30 @@ const React = require('react');
 const { useState, useEffect } = React;
 const { createRoot } = require('react-dom/client');
 
+// New feature: Send a request to delete a Domo
+const handleDelete = async (id, triggerReload) => {
+    helper.hideError();
+
+    try {
+        const response = await fetch(`/domo/${id}`, {
+            method: 'DELETE',
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+            helper.handleError(data.error);
+            return;
+        }
+
+        // Refresh the Domo list after successful deletion
+        triggerReload();
+    } catch (err) {
+        console.log(err);
+        helper.handleError('Unable to delete Domo');
+    }
+};
+
 // Domo form logic
 // start with preventDefault to stop the default form submission behavior,
 // stop the page from reloading,
@@ -14,13 +38,14 @@ const handleDomo = (e, onDomoAdded) => {
     // with default prevented, get the name and age values from the form inputs
     const name = e.target.querySelector('#domoName').value;
     const age = e.target.querySelector('#domoAge').value;
+    const level = e.target.querySelector('#domoLevel').value;
 
-    if (!name || !age) {
+    if (!name || !age || !level) {
         helper.handleError('All fields are required');
         return false;
     }
 
-    helper.sendPost(e.target.action, { name, age }, onDomoAdded);
+    helper.sendPost(e.target.action, { name, age, level }, onDomoAdded);
     return false;
 };
 
@@ -40,6 +65,8 @@ const DomoForm = (props) => {
             <input id="domoName" type="text" name="name" placeholder="Domo Name" />
             <label htmlFor="age">Age: </label>
             <input id="domoAge" type="number" min="0" name="age" />
+            <label htmlFor="level">Level: </label>
+            <input id="domoLevel" type="number" min="1" name="level" />
             <input className="makeDomoSubmit" type="submit" value="Make Domo" />
         </form>
     );
@@ -81,6 +108,15 @@ const DomoList = (props) => {
                 <img src="/assets/img/domoface.jpeg" alt="domo face" className="domoFace" />
                 <h3 className="domoName">Name: {domo.name}</h3>
                 <h3 className="domoAge">Age: {domo.age}</h3>
+                <h3 className="domoLevel">Level: {domo.level}</h3>
+
+                {/* New feature: Add a delete button for each Domo */}
+                <button
+                    type="button"
+                    onClick={() => handleDelete(domo._id, props.triggerReload)}
+                    >
+                    Delete
+                </button>
             </div>
         );
     });
@@ -102,7 +138,11 @@ const App = () => {
                 <DomoForm triggerReload={() => setReloadDomos(!reloadDomos)} />
             </div>
             <div id="domos">
-                <DomoList domos={[]} reloadDomos={reloadDomos} />
+                <DomoList
+                    domos={[]}
+                    reloadDomos={reloadDomos}
+                    triggerReload={() => setReloadDomos(!reloadDomos)}
+                />
             </div>
         </div>
     );

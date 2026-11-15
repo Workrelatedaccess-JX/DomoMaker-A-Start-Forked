@@ -21,10 +21,11 @@ const router = (app) => {
     // Create a new Domo and save it to MongoDB
     app.post('/maker', mid.requiresLogin, controllers.Domo.makeDomo);
 
+    // Delete a Domo belonging to the logged-in user
+    app.delete('/domo/:id', mid.requiresLogin, controllers.Domo.deleteDomo);
+
     // Show main page
     app.get('/', mid.requiresSecure, mid.requiresLogout, controllers.Account.loginPage);
-
-
 };
 
 module.exports = router;
